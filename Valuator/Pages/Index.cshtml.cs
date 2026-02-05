@@ -25,20 +25,24 @@ public class IndexModel : PageModel
         _logger.LogDebug(text);
         
         IDatabase db = _redis.GetDatabase();
-        
         string id = Guid.NewGuid().ToString();
-
-        string textKey = "TEXT-" + id;
-        db.StringSet(textKey, text);
         
         // Для поиска
         // INDEX-text:попытка номер три → {id1, id2, ...} 
         string textIndex = "INDEX-text:" + text;
+        RedisValue[] matches = db.SetMembers(textIndex);
+        
+        // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
+        string similarityKey = "SIMILARITY-" + id;
+        double similarity = matches.Length > 0 ? 1.0 : 0.0;
+        db.StringSet(similarityKey, similarity);
+        
+        string textKey = "TEXT-" + id;
+        db.StringSet(textKey, text);
         db.SetAdd(textIndex, id);
         
-        string rankKey = "RANK-" + id;
-        
         // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
+        string rankKey = "RANK-" + id;
         double rank = 0;
         foreach (char ch in text)
         {
@@ -50,16 +54,6 @@ public class IndexModel : PageModel
         rank /= text.Length;
         
         db.StringSet(rankKey, rank);
-
-        
-        string similarityKey = "SIMILARITY-" + id;
-        // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
-        
-        RedisValue[] matches = db.SetMembers(textIndex);
-        db.StringSet(similarityKey, 
-            matches.Length > 0 
-            ? 1 
-            : 0);
 
         return Redirect($"summary?id={id}");
     }
