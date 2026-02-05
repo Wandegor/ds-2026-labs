@@ -52,8 +52,10 @@ public class IndexModel : PageModel
             }
         }
         rank /= text.Length;
+        string rankString = Math.Round(rank, 4)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
         
-        db.StringSet(rankKey, rank);
+        db.StringSet(rankKey, rankString);
 
         return Redirect($"summary?id={id}");
     }
