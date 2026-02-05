@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using StackExchange.Redis;
 
 namespace Valuator.Pages;
 
@@ -20,15 +21,19 @@ public class IndexModel : PageModel
     public IActionResult OnPost(string text)
     {
         _logger.LogDebug(text);
-
+        
+        ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost:6379");
+        IDatabase db = redis.GetDatabase();
+        
         string id = Guid.NewGuid().ToString();
 
         string textKey = "TEXT-" + id;
-        // TODO: (pa1) сохранить в БД (Redis) text по ключу textKey
-
+        db.StringSet(textKey, text);
+        
         string rankKey = "RANK-" + id;
         // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
 
+        
         string similarityKey = "SIMILARITY-" + id;
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
 
