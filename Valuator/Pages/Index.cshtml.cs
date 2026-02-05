@@ -30,6 +30,11 @@ public class IndexModel : PageModel
         string textKey = "TEXT-" + id;
         db.StringSet(textKey, text);
         
+        // Для поиска
+        // INDEX-text:попытка номер три → {id1, id2, ...} 
+        string textIndex = "INDEX-text:" + text;
+        db.SetAdd(textIndex, textKey);
+        
         string rankKey = "RANK-" + id;
         
         // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
@@ -49,6 +54,11 @@ public class IndexModel : PageModel
         string similarityKey = "SIMILARITY-" + id;
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
         
+        RedisValue[] matches = db.SetMembers(textIndex);
+        db.StringSet(similarityKey, 
+            matches.Length > 0 
+            ? 1 
+            : 0);
 
         return Redirect($"summary?id={id}");
     }
