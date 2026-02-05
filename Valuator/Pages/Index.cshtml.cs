@@ -31,11 +31,24 @@ public class IndexModel : PageModel
         db.StringSet(textKey, text);
         
         string rankKey = "RANK-" + id;
+        
         // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
+        double rank = 0;
+        foreach (char ch in text)
+        {
+            if (!char.IsLetter(ch))
+            {
+                rank++;
+            }
+        }
+        rank /= text.Length;
+        
+        db.StringSet(rankKey, rank);
 
         
         string similarityKey = "SIMILARITY-" + id;
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
+        
 
         return Redirect($"summary?id={id}");
     }
