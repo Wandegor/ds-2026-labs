@@ -7,10 +7,12 @@ namespace Valuator.Pages;
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
+    private readonly IConnectionMultiplexer _redis;
 
-    public IndexModel(ILogger<IndexModel> logger)
+    public IndexModel(ILogger<IndexModel> logger,  IConnectionMultiplexer redis)
     {
         _logger = logger;
+        _redis = redis;
     }
 
     public void OnGet()
@@ -22,8 +24,7 @@ public class IndexModel : PageModel
     {
         _logger.LogDebug(text);
         
-        ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost:6379");
-        IDatabase db = redis.GetDatabase();
+        IDatabase db = _redis.GetDatabase();
         
         string id = Guid.NewGuid().ToString();
 
@@ -33,7 +34,7 @@ public class IndexModel : PageModel
         // Для поиска
         // INDEX-text:попытка номер три → {id1, id2, ...} 
         string textIndex = "INDEX-text:" + text;
-        db.SetAdd(textIndex, textKey);
+        db.SetAdd(textIndex, id);
         
         string rankKey = "RANK-" + id;
         
