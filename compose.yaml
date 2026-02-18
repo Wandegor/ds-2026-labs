@@ -1,4 +1,5 @@
 ﻿version: '3.9'
+
 services:
   redis:
     image: redis:latest
@@ -7,5 +8,53 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - app-network
+
+  app1:
+    build:
+      context: .
+      dockerfile: Valuator/Dockerfile
+    container_name: valuator-app1
+    depends_on:
+      - redis
+    environment:
+      - ConnectionStrings__Redis=redis:6379
+    ports:
+      - "5001:8080"
+    networks:
+      - app-network
+
+  app2:
+    build:
+      context: .
+      dockerfile: Valuator/Dockerfile
+    container_name: valuator-app2
+    depends_on:
+      - redis
+    environment:
+      - ConnectionStrings__Redis=redis:6379
+    ports:
+      - "5002:8080"
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: valuator-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
 volumes:
   redis_data:
