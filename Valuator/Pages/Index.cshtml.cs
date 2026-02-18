@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
@@ -20,8 +22,22 @@ public class IndexModel : PageModel
 
     }
 
+    private static string ComputeHash(string input)
+    {
+        using var sha256 = SHA256.Create();
+        byte[] bytes = Encoding.UTF8.GetBytes(input);
+        byte[] hashBytes = sha256.ComputeHash(bytes);
+        return Convert.ToHexString(hashBytes);
+    }
+    
     public IActionResult OnPost(string text)
     {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Page();
+        }
+        
+        // TODO: масиив с уникальными текстами
         _logger.LogDebug(text);
         
         IDatabase db = _redis.GetDatabase();
@@ -29,7 +45,7 @@ public class IndexModel : PageModel
         
         // Для поиска
         // INDEX-text:попытка номер три → {id1, id2, ...} 
-        string textIndex = "INDEX-text:" + text;
+        string textIndex = "INDEX-text:" + ComputeHash(text);
         RedisValue[] matches = db.SetMembers(textIndex);
         
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey

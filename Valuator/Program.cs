@@ -10,8 +10,10 @@ public class Program
 
         // Add services to the container.
         builder.Services.AddRazorPages();
-        builder.Services.AddSingleton<IConnectionMultiplexer>(
-            ConnectionMultiplexer.Connect("localhost:6379"));
+        var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+        var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+        
+        builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
         var app = builder.Build();
 
