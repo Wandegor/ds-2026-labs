@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using StackExchange.Redis;
 
 namespace Valuator;
@@ -11,8 +12,10 @@ public class Program
         // Add services to the container.
         builder.Services.AddRazorPages();
         var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-        builder.Services.AddSingleton<IConnectionMultiplexer>(
-            ConnectionMultiplexer.Connect(redisConnectionString));
+        var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+        
+        builder.Services.AddDataProtection().PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+        builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
         var app = builder.Build();
 
