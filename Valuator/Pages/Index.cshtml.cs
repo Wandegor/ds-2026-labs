@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
@@ -20,26 +22,40 @@ public class IndexModel : PageModel
 
     }
 
+    private static string ComputeHash(string input)
+    {
+        using var sha256 = SHA256.Create();
+        byte[] bytes = Encoding.UTF8.GetBytes(input);
+        byte[] hashBytes = sha256.ComputeHash(bytes);
+        return Convert.ToHexString(hashBytes);
+    }
+    
     public IActionResult OnPost(string text)
     {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Page();
+        }
+        
+        // TODO: масиив с уникальными текстами
         _logger.LogDebug(text);
         
         IDatabase db = _redis.GetDatabase();
         string id = Guid.NewGuid().ToString();
         
-        // Для поиска
-        // INDEX-text:попытка номер три → {id1, id2, ...} 
-        string textIndex = "INDEX-text:" + text;
-        RedisValue[] matches = db.SetMembers(textIndex);
+        
         
         // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
-        string similarityKey = "SIMILARITY-" + id;
-        double similarity = matches.Length > 0 ? 1.0 : 0.0;
-        db.StringSet(similarityKey, similarity);
         
-        string textKey = "TEXT-" + id;
-        db.StringSet(textKey, text);
-        db.SetAdd(textIndex, id);
+        double similarity = 0.0f;
+        string setName = "SetWithTexts";
+        if (!db.SetAdd(setName, ComputeHash(text))) // повторка
+        {
+            similarity = 1.0;
+        }
+        
+        string similarityKey = "SIMILARITY-" + id;
+        db.StringSet(similarityKey, similarity);
         
         // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
         string rankKey = "RANK-" + id;
