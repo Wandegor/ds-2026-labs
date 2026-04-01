@@ -14,26 +14,56 @@ class Program
         Console.WriteLine("Consumer started");
 
         string redisHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? "localhost";
+        string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+        
         var redis = await ConnectionMultiplexer.ConnectAsync(redisHost);
         IDatabase db = redis.GetDatabase();
         
         ConnectionFactory factory = new ConnectionFactory
         {
-            HostName = "localhost",
+            HostName = rabbitHost,
         };
-        await using IConnection connection = await factory.CreateConnectionAsync();
-        await using IChannel channel = await connection.CreateChannelAsync();
-
-        await DeclareTopologyAsync(channel); // Создание очереди если нет
         
-        string consumerTag = await RunConsumer(channel, db);
+        IConnection? connection = null;
 
-        Console.WriteLine("Press Enter to exit");
-        Console.ReadLine();
+        // RABBITMQ
+        Console.WriteLine("Waiting for RabbitMQ...");
+        while (connection == null)
+        {
+            try 
+            {
+                connection = await factory.CreateConnectionAsync();
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("RabbitMQ is not ready yet. Retrying in 5 seconds...");
+                await Task.Delay(5000);
+            }
+        }
 
-        await channel.BasicCancelAsync(consumerTag);
+        await using (connection)
+        {
+            await using IChannel channel = await connection.CreateChannelAsync();
+            await DeclareTopologyAsync(channel);
+        
+            string consumerTag = await RunConsumer(channel, db);
 
-        Console.WriteLine("done");
+            Console.WriteLine("--- Consumer is running. Press Ctrl+C to stop ---");
+            await Task.Delay(Timeout.Infinite);
+        }
+        // await using IConnection connection = await factory.CreateConnectionAsync();
+        // await using IChannel channel = await connection.CreateChannelAsync();
+        //
+        // await DeclareTopologyAsync(channel); // Создание очереди если нет
+        //
+        // string consumerTag = await RunConsumer(channel, db);
+        //
+        // Console.WriteLine("Press Enter to exit");
+        // // Console.ReadLine();
+        // await Task.Delay(Timeout.Infinite);
+        // // await channel.BasicCancelAsync(consumerTag);
+        // //
+        // // Console.WriteLine("done");
     }
 
     private static async Task<string> RunConsumer(IChannel channel, IDatabase db)

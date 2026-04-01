@@ -64,21 +64,6 @@ public class IndexModel : PageModel
         
         // (pa3) посчитать rank в RankCalculator при помощи RabbitMQ
         await PublishRankTaskAsync(id);
-        
-        // string rankKey = "RANK-" + id;
-        // double rank = 0;
-        // foreach (char ch in text)
-        // {
-        //     if (!char.IsLetter(ch))
-        //     {
-        //         rank++;
-        //     }
-        // }
-        // rank /= text.Length;
-        // string rankString = Math.Round(rank, 4)
-        //     .ToString(System.Globalization.CultureInfo.InvariantCulture);
-        //
-        // db.StringSet(rankKey, rankString);
 
         return Redirect($"summary?id={id}");
     }

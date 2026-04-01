@@ -20,6 +20,20 @@ services:
     networks:
       - app-network
 
+  rank-calculator:
+    build:
+      context: ./RankCalculator
+      dockerfile: Dockerfile
+    container_name: valuator-rank-calc
+    depends_on:
+      - redis
+      - rabbitmq
+    environment:
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - app-network
+
   app1:
     build:
       context: .
@@ -27,8 +41,10 @@ services:
     container_name: valuator-app1
     depends_on:
       - redis
+      - rabbitmq
     environment:
       - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq 
     ports:
       - "5001:8080"
     networks:
@@ -41,8 +57,10 @@ services:
     container_name: valuator-app2
     depends_on:
       - redis
+      - rabbitmq
     environment:
       - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
     ports:
       - "5002:8080"
     networks:
