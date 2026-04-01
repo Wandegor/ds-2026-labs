@@ -1,6 +1,12 @@
 ﻿@page
 @model Valuator.Pages.SummaryModel
-@{
+@if (ViewData["Status"] != null)
+{
+    <p>@ViewData["Status"]</p>
 }
-<p>Оценка содержания: @Model.Rank</p>
+else
+{
+    <p>Оценка содержания: @Model.Rank</p>
+}
+
 <p>Плагиат: @Model.Similarity</p>
