@@ -27,7 +27,7 @@ public class SummaryModel : PageModel
         _logger.LogDebug(id);
 
         IDatabase db = _redis.GetDatabase();
-        // TODO: (pa1) проинициализировать свойства Rank и Similarity значениями из БД (Redis)
+        // (pa1) проинициализировать свойства Rank и Similarity значениями из БД (Redis)
         
         string? rankValue = db.StringGet($"RANK-{id}");
         if (!string.IsNullOrEmpty(rankValue))
@@ -39,6 +39,10 @@ public class SummaryModel : PageModel
             {
                 Rank = rank;
             }
+        }
+        else
+        {
+            ViewData["Status"] = "Оценка содержания не завершена";
         }
         
         string? similitaryValue = db.StringGet($"SIMILARITY-{id}");

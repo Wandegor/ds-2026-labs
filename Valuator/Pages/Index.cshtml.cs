@@ -2,19 +2,25 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RabbitMQ.Client;
 using StackExchange.Redis;
 
 namespace Valuator.Pages;
 
 public class IndexModel : PageModel
 {
+    private const string ExchangeName = "valuator.processing.rank";
+    private const string QueueName = "valuator.processing.rank";
+    
     private readonly ILogger<IndexModel> _logger;
     private readonly IConnectionMultiplexer _redis;
+    private readonly ConnectionFactory _rabbitFactory;
 
-    public IndexModel(ILogger<IndexModel> logger,  IConnectionMultiplexer redis)
+    public IndexModel(ILogger<IndexModel> logger,  IConnectionMultiplexer redis, ConnectionFactory rabbitFactory)
     {
         _logger = logger;
         _redis = redis;
+        _rabbitFactory = rabbitFactory;
     }
 
     public void OnGet()
@@ -30,23 +36,22 @@ public class IndexModel : PageModel
         return Convert.ToHexString(hashBytes);
     }
     
-    public IActionResult OnPost(string text)
+    public async Task<IActionResult> OnPostAsync(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             return Page();
         }
         
-        // TODO: масиив с уникальными текстами
         _logger.LogDebug(text);
         
         IDatabase db = _redis.GetDatabase();
         string id = Guid.NewGuid().ToString();
         
+        // вернул сохранение самого текста
+        db.StringSet($"TEXT-{id}", text);
         
-        
-        // TODO: (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
-        
+        // (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
         double similarity = 0.0f;
         string setName = "SetWithTexts";
         if (!db.SetAdd(setName, ComputeHash(text))) // повторка
@@ -57,22 +62,41 @@ public class IndexModel : PageModel
         string similarityKey = "SIMILARITY-" + id;
         db.StringSet(similarityKey, similarity);
         
-        // TODO: (pa1) посчитать rank и сохранить в БД (Redis) по ключу rankKey
-        string rankKey = "RANK-" + id;
-        double rank = 0;
-        foreach (char ch in text)
-        {
-            if (!char.IsLetter(ch))
-            {
-                rank++;
-            }
-        }
-        rank /= text.Length;
-        string rankString = Math.Round(rank, 4)
-            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        // (pa3) посчитать rank в RankCalculator при помощи RabbitMQ
+        await PublishRankTaskAsync(id);
         
-        db.StringSet(rankKey, rankString);
+        // string rankKey = "RANK-" + id;
+        // double rank = 0;
+        // foreach (char ch in text)
+        // {
+        //     if (!char.IsLetter(ch))
+        //     {
+        //         rank++;
+        //     }
+        // }
+        // rank /= text.Length;
+        // string rankString = Math.Round(rank, 4)
+        //     .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        //
+        // db.StringSet(rankKey, rankString);
 
         return Redirect($"summary?id={id}");
+    }
+    
+    private async Task PublishRankTaskAsync(string id)
+    {
+        await using var connection = await _rabbitFactory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+        
+        await channel.ExchangeDeclareAsync(ExchangeName, ExchangeType.Direct);
+        await channel.QueueDeclareAsync(QueueName, durable: true, exclusive: false, autoDelete: false);
+        await channel.QueueBindAsync(QueueName, ExchangeName, routingKey: "");
+
+        byte[] messageData = Encoding.UTF8.GetBytes(id);
+        await channel.BasicPublishAsync(
+            exchange: ExchangeName,
+            routingKey: "",
+            body: messageData
+        );
     }
 }

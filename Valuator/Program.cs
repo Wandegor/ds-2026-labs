@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using RabbitMQ.Client;
 using StackExchange.Redis;
 
 namespace Valuator;
@@ -9,7 +10,6 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
         builder.Services.AddRazorPages();
         var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
         var redis = ConnectionMultiplexer.Connect(redisConnectionString);
@@ -20,9 +20,15 @@ public class Program
         builder.Services.AddDataProtection().PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
         builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
+        // RabbitMQ
+        builder.Services.AddSingleton<ConnectionFactory>(sp => new ConnectionFactory
+        {
+            // Docker — "rabbitmq", локально — "localhost"
+            HostName = builder.Configuration.GetSection("RabbitMQ")["Host"] ?? "localhost" 
+        });
+        
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
