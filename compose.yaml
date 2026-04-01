@@ -24,7 +24,7 @@ services:
     build:
       context: ./RankCalculator
       dockerfile: Dockerfile
-    container_name: valuator-rank-calc
+    # container_name: valuator-rank-calc
     depends_on:
       - redis
       - rabbitmq
