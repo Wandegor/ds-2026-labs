@@ -51,19 +51,6 @@ class Program
             Console.WriteLine("--- Consumer is running. Press Ctrl+C to stop ---");
             await Task.Delay(Timeout.Infinite);
         }
-        // await using IConnection connection = await factory.CreateConnectionAsync();
-        // await using IChannel channel = await connection.CreateChannelAsync();
-        //
-        // await DeclareTopologyAsync(channel); // Создание очереди если нет
-        //
-        // string consumerTag = await RunConsumer(channel, db);
-        //
-        // Console.WriteLine("Press Enter to exit");
-        // // Console.ReadLine();
-        // await Task.Delay(Timeout.Infinite);
-        // // await channel.BasicCancelAsync(consumerTag);
-        // //
-        // // Console.WriteLine("done");
     }
 
     private static async Task<string> RunConsumer(IChannel channel, IDatabase db)
@@ -101,7 +88,10 @@ class Program
                 
             Console.WriteLine($"Calculated Rank: {rankString} for ID: {id}");
         }
-        
+        else
+        {
+            Console.WriteLine($"Text for ID {{id}} not found in Redis");
+        }
         await channel.BasicAckAsync(eventArgs.DeliveryTag, false); // Подтверждение, сообщ удаляется из очереди
     }
 
