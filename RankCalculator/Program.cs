@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StackExchange.Redis;
@@ -7,6 +8,7 @@ namespace RankCalculator;
 
 class Program
 {
+    private const string RankExchange = "events.rank.calculated";
     private const string QueueName = "valuator.processing.rank";
 
     public static async Task Main(string[] args)
@@ -85,6 +87,9 @@ class Program
                 .ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             await db.StringSetAsync($"RANK-{id}", rankString);
+            
+            // (pa4) событие RankCalculated
+            await PublishRankEventAsync(channel, id, rank);
                 
             Console.WriteLine($"Calculated Rank: {rankString} for ID: {id}");
         }
@@ -94,7 +99,6 @@ class Program
         }
         await channel.BasicAckAsync(eventArgs.DeliveryTag, false); // Подтверждение, сообщ удаляется из очереди
     }
-
 
     /// <summary>
     ///  Определяет топологию: queue -> consumer.
@@ -106,6 +110,21 @@ class Program
             durable: true,
             exclusive: false,
             autoDelete: false
+        );
+    }
+    
+    private static async Task PublishRankEventAsync(IChannel channel, string id, double rank)
+    {
+        await channel.ExchangeDeclareAsync(RankExchange, ExchangeType.Fanout, durable: true);
+    
+        var eventData = new { Id = id, Rank = rank };
+        string json = JsonSerializer.Serialize(eventData);
+        byte[] body = Encoding.UTF8.GetBytes(json);
+    
+        await channel.BasicPublishAsync(
+            exchange: RankExchange,
+            routingKey: "",
+            body: body
         );
     }
 }

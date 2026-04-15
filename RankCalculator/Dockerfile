@@ -6,7 +6,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# ТАК ПРАВИЛЬНО: копируем файл из текущей папки (контекста)
 COPY ["RankCalculator.csproj", "./"]
 RUN dotnet restore "RankCalculator.csproj"
 

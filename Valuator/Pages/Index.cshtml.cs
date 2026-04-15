@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RabbitMQ.Client;
@@ -9,6 +10,8 @@ namespace Valuator.Pages;
 
 public class IndexModel : PageModel
 {
+    private const string SimilarityExchange = "events.similarity.calculated"; 
+    
     private const string ExchangeName = "valuator.processing.rank";
     private const string QueueName = "valuator.processing.rank";
     
@@ -62,6 +65,9 @@ public class IndexModel : PageModel
         string similarityKey = "SIMILARITY-" + id;
         db.StringSet(similarityKey, similarity);
         
+        // (pa4) событие SimilarityCalculated
+        await PublishSimilarityEventAsync(id, similarity);
+        
         // (pa3) посчитать rank в RankCalculator при помощи RabbitMQ
         await PublishRankTaskAsync(id);
 
@@ -80,6 +86,25 @@ public class IndexModel : PageModel
         byte[] messageData = Encoding.UTF8.GetBytes(id);
         await channel.BasicPublishAsync(
             exchange: ExchangeName,
+            routingKey: "",
+            body: messageData
+        );
+    }
+    
+    private async Task PublishSimilarityEventAsync(string id, double similarity)
+    {
+        await using var connection = await _rabbitFactory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+    
+        // Fanout exchange — сообщение получат все подписанные очереди
+        await channel.ExchangeDeclareAsync(SimilarityExchange, ExchangeType.Fanout, durable: true);
+    
+        var eventData = new { Id = id, Similarity = similarity };
+        string json = JsonSerializer.Serialize(eventData);
+        byte[] messageData = Encoding.UTF8.GetBytes(json);
+    
+        await channel.BasicPublishAsync(
+            exchange: SimilarityExchange,
             routingKey: "",
             body: messageData
         );

@@ -33,6 +33,28 @@ services:
       - RABBITMQ_HOST=rabbitmq
     networks:
       - app-network
+  
+  events-logger-1:
+    build:
+      context: ./EventsLogger
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - app-network
+
+  events-logger-2:
+    build:
+      context: ./EventsLogger
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - app-network
 
   app1:
     build:
