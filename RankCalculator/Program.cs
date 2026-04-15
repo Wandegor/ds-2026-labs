@@ -46,26 +46,34 @@ class Program
         await using (connection)
         {
             await using IChannel channel = await connection.CreateChannelAsync();
-            await DeclareTopologyAsync(channel);
+            await DeclareTopologyAsync(channel); // только первый экземпляр создаст очередь (Идемпотентность)
         
-            string consumerTag = await RunConsumer(channel, db);
+            await RunConsumer(channel, db);
 
             Console.WriteLine("--- Consumer is running. Press Ctrl+C to stop ---");
             await Task.Delay(Timeout.Infinite);
         }
     }
 
-    private static async Task<string> RunConsumer(IChannel channel, IDatabase db)
+    private static async Task RunConsumer(IChannel channel, IDatabase db)
     {
         AsyncEventingBasicConsumer consumer = new(channel);
+        
+        // Обработчик события, запустит ConsumeAsync после получения сообщения
         consumer.ReceivedAsync += (_, eventArgs) => ConsumeAsync(channel, eventArgs, db);
-        return await channel.BasicConsumeAsync(
+        
+        // Остальные экземпляры подписываются на очередь
+        await channel.BasicConsumeAsync(
             queue: QueueName,
             autoAck: false, // Ожидание личного подтверждения (Ack)
             consumer: consumer
         );
     }
 
+    /// <summary>
+    /// Обрабатывает входящее событие:
+    ///     считает Rank, записывает в БД, публикует RankCalculated, выводит в консоль и подтверждает.
+    /// </summary>
     private static async Task ConsumeAsync(IChannel channel, BasicDeliverEventArgs eventArgs, IDatabase db)
     {
         string id = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
@@ -88,7 +96,7 @@ class Program
 
             await db.StringSetAsync($"RANK-{id}", rankString);
             
-            // (pa4) событие RankCalculated
+            // (pa4) публикация события RankCalculated
             await PublishRankEventAsync(channel, id, rank);
                 
             Console.WriteLine($"Calculated Rank: {rankString} for ID: {id}");
@@ -113,6 +121,9 @@ class Program
         );
     }
     
+    /// <summary>
+    ///  Публикует событие завершения вычисления Rank с id и числом rank
+    /// </summary>
     private static async Task PublishRankEventAsync(IChannel channel, string id, double rank)
     {
         await channel.ExchangeDeclareAsync(RankExchange, ExchangeType.Fanout, durable: true);

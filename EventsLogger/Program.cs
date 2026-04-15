@@ -49,7 +49,7 @@ class Program
     /// </summary>
     private static async Task<string> DeclareTopologyAsync(IChannel channel)
     {
-        // Обменники
+        // Обменники, их создается всего 2 (Идемпотентность)
         await channel.ExchangeDeclareAsync(SimilarityExchange, ExchangeType.Fanout, durable: true);
         await channel.ExchangeDeclareAsync(RankExchange, ExchangeType.Fanout, durable: true);
 
