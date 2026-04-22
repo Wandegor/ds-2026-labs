@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.DataProtection;
 using RabbitMQ.Client;
 using StackExchange.Redis;
+using Valuator.Hubs;
+using Valuator.Services;
 
 namespace Valuator;
 
@@ -23,10 +25,22 @@ public class Program
         // RabbitMQ
         builder.Services.AddSingleton<ConnectionFactory>(sp => new ConnectionFactory
         {
-            // Docker — "rabbitmq", локально — "localhost"
             HostName = builder.Configuration.GetSection("RabbitMQ")["Host"] ?? "localhost" 
         });
         
+        builder.Services.AddSingleton<IConnection>(sp =>
+        {
+            var factory = sp.GetRequiredService<ConnectionFactory>();
+            return factory.CreateConnectionAsync().GetAwaiter().GetResult();
+        });
+        
+        // builder.Services.AddHostedService<RankEventBackgroundService>();
+        //
+        // builder.Services.AddSignalR()
+        //     .AddStackExchangeRedis(redisConnectionString, options =>
+        //     {
+        //         options.Configuration.ChannelPrefix = RedisChannel.Literal("ValuatorSignalR");
+        //     });
         var app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
@@ -40,7 +54,18 @@ public class Program
         app.UseAuthorization();
 
         app.MapRazorPages();
+        
+        app.MapHub<RankNotificationHub>("/rankHub");
 
+        // Закрытие Rabbit соединения
+        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        var rabbitConnection = app.Services.GetRequiredService<IConnection>();
+        lifetime.ApplicationStopping.Register(() =>
+        {
+            rabbitConnection.CloseAsync().Wait();
+            rabbitConnection.Dispose();
+        });
+        
         app.Run();
     }
 }

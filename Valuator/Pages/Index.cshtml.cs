@@ -17,13 +17,13 @@ public class IndexModel : PageModel
     
     private readonly ILogger<IndexModel> _logger;
     private readonly IConnectionMultiplexer _redis;
-    private readonly ConnectionFactory _rabbitFactory;
+    private readonly IConnection _rabbitConnection;
 
-    public IndexModel(ILogger<IndexModel> logger,  IConnectionMultiplexer redis, ConnectionFactory rabbitFactory)
+    public IndexModel(ILogger<IndexModel> logger,  IConnectionMultiplexer redis, IConnection rabbitConnection)
     {
         _logger = logger;
         _redis = redis;
-        _rabbitFactory = rabbitFactory;
+        _rabbitConnection = rabbitConnection;
     }
 
     public void OnGet()
@@ -76,8 +76,7 @@ public class IndexModel : PageModel
     
     private async Task PublishRankTaskAsync(string id)
     {
-        await using var connection = await _rabbitFactory.CreateConnectionAsync();
-        await using var channel = await connection.CreateChannelAsync();
+        await using var channel = await _rabbitConnection.CreateChannelAsync();
         
         await channel.ExchangeDeclareAsync(ExchangeName, ExchangeType.Direct);
         await channel.QueueDeclareAsync(QueueName, durable: true, exclusive: false, autoDelete: false);
@@ -93,8 +92,7 @@ public class IndexModel : PageModel
     
     private async Task PublishSimilarityEventAsync(string id, double similarity)
     {
-        await using var connection = await _rabbitFactory.CreateConnectionAsync();
-        await using var channel = await connection.CreateChannelAsync();
+        await using var channel = await _rabbitConnection.CreateChannelAsync();
     
         // Fanout exchange — сообщение получат все подписанные очереди
         await channel.ExchangeDeclareAsync(SimilarityExchange, ExchangeType.Fanout, durable: true);
