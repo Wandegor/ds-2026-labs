@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.DataProtection;
 using RabbitMQ.Client;
 using StackExchange.Redis;
+using Valuator.Hubs;
+using Valuator.Services;
 
 namespace Valuator;
 
@@ -48,7 +50,6 @@ public class Program
         
         builder.Services.AddHostedService<RankEventBackgroundService>();
         
-        // builder.Services.AddSignalR();
         builder.Services.AddSignalR()
             .AddStackExchangeRedis(redisConnectionString, options =>
             {
@@ -68,15 +69,8 @@ public class Program
         app.UseAuthorization();
 
         app.MapRazorPages();
-
-        // Закрытие Rabbit соединения
-        // var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-        // var rabbitConnection = app.Services.GetRequiredService<IConnection>();
-        // lifetime.ApplicationStopping.Register(() =>
-        // {
-        //     rabbitConnection.CloseAsync().Wait();
-        //     rabbitConnection.Dispose();
-        // });
+        
+        app.MapHub<RankNotificationHub>("/rankHub");
         
         app.Run();
     }
