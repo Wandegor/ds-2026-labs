@@ -1,12 +1,41 @@
 ﻿@page
 @model Valuator.Pages.SummaryModel
-@if (ViewData["Status"] != null)
+@if (Model.Rank.HasValue)
 {
-    <p>@ViewData["Status"]</p>
+    <p>Оценка содержания: <span id="rankValue">@Model.Rank.Value.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)</span></p>
 }
 else
 {
-    <p>Оценка содержания: @Model.Rank</p>
+    <p>Оценка содержания: <span id="rankValue">Ожидание...</span></p>
+}
+
+@section Scripts {
+    @if (!Model.Rank.HasValue)
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+        <script>
+            const textId = '@Model.Id';
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/rankHub")
+                .build();
+
+            connection.on("RankCalculated", (rank) => {
+                document.getElementById("rankValue").textContent = rank.toFixed(4);
+            });
+
+            async function start() {
+                try {
+                    await connection.start();
+                    await connection.invoke("SubscribeToRank", textId);
+                } catch (err) {
+                    console.error(err);
+                    setTimeout(start, 5000);
+                }
+            }
+
+            start();
+        </script>
+    }
 }
 
 <p>Плагиат: @Model.Similarity</p>

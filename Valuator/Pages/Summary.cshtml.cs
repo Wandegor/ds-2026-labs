@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -19,42 +20,34 @@ public class SummaryModel : PageModel
         _redis = redis;
     }
 
-    public double Rank { get; set; }
+    public string Id { get; set; }
+    public double? Rank { get; set; }
     public double Similarity { get; set; }
 
     public void OnGet(string id)
     {
+        Id = id;    
         _logger.LogDebug(id);
 
         IDatabase db = _redis.GetDatabase();
         // (pa1) проинициализировать свойства Rank и Similarity значениями из БД (Redis)
         
         string? rankValue = db.StringGet($"RANK-{id}");
-        if (!string.IsNullOrEmpty(rankValue))
-        {
-            if (double.TryParse(rankValue,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double rank))
-            {
-                Rank = rank;
-            }
-        }
+        if (double.TryParse(rankValue, 
+                NumberStyles.Float, 
+                CultureInfo.InvariantCulture, 
+                out double r))
+            Rank = r;
         else
-        {
-            ViewData["Status"] = "Оценка содержания не завершена";
-        }
+            Rank = null;
         
         string? similitaryValue = db.StringGet($"SIMILARITY-{id}");
-        if (!string.IsNullOrEmpty(similitaryValue))
+        if (double.TryParse(similitaryValue,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out double sim))
         {
-            if (double.TryParse(similitaryValue,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double similitary))
-            {
-                Similarity = similitary;
-            }
+            Similarity = sim;
         }
     }
 }

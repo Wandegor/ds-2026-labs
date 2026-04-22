@@ -76,6 +76,11 @@ class Program
     /// </summary>
     private static async Task ConsumeAsync(IChannel channel, BasicDeliverEventArgs eventArgs, IDatabase db)
     {
+        // pa5 Принудительное ожидание для проверки эффекта
+        TimeSpan interval = TimeSpan.FromSeconds(new Random().Next(3, 15));
+        Console.WriteLine($"Waiting {interval}");
+        await Task.Delay(interval);
+        
         string id = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
         Console.WriteLine($"Received task for ID: {id}");
         

@@ -34,13 +34,15 @@ public class Program
             return factory.CreateConnectionAsync().GetAwaiter().GetResult();
         });
         
-        // builder.Services.AddHostedService<RankEventBackgroundService>();
-        //
-        // builder.Services.AddSignalR()
-        //     .AddStackExchangeRedis(redisConnectionString, options =>
-        //     {
-        //         options.Configuration.ChannelPrefix = RedisChannel.Literal("ValuatorSignalR");
-        //     });
+        builder.Services.AddHostedService<RankEventBackgroundService>();
+        
+        // builder.Services.AddSignalR();
+        builder.Services.AddSignalR()
+            .AddStackExchangeRedis(redisConnectionString, options =>
+            {
+                options.Configuration.ChannelPrefix = RedisChannel.Literal("ValuatorSignalR");
+            });
+        
         var app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
@@ -58,13 +60,13 @@ public class Program
         app.MapHub<RankNotificationHub>("/rankHub");
 
         // Закрытие Rabbit соединения
-        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-        var rabbitConnection = app.Services.GetRequiredService<IConnection>();
-        lifetime.ApplicationStopping.Register(() =>
-        {
-            rabbitConnection.CloseAsync().Wait();
-            rabbitConnection.Dispose();
-        });
+        // var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        // var rabbitConnection = app.Services.GetRequiredService<IConnection>();
+        // lifetime.ApplicationStopping.Register(() =>
+        // {
+        //     rabbitConnection.CloseAsync().Wait();
+        //     rabbitConnection.Dispose();
+        // });
         
         app.Run();
     }
