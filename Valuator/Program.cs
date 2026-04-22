@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 using RabbitMQ.Client;
 using StackExchange.Redis;
-using Valuator.Hubs;
-using Valuator.Services;
 
 namespace Valuator;
 
@@ -30,8 +28,22 @@ public class Program
         
         builder.Services.AddSingleton<IConnection>(sp =>
         {
+            // ожидание запуска Rabbit
             var factory = sp.GetRequiredService<ConnectionFactory>();
-            return factory.CreateConnectionAsync().GetAwaiter().GetResult();
+            IConnection? connection = null;
+            while (connection == null)
+            {
+                try
+                {
+                    connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    Console.WriteLine("RabbitMQ not ready, waiting 5 seconds...");
+                    Task.Delay(5000).Wait();
+                }
+            }
+            return connection;
         });
         
         builder.Services.AddHostedService<RankEventBackgroundService>();
@@ -56,8 +68,6 @@ public class Program
         app.UseAuthorization();
 
         app.MapRazorPages();
-        
-        app.MapHub<RankNotificationHub>("/rankHub");
 
         // Закрытие Rabbit соединения
         // var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
