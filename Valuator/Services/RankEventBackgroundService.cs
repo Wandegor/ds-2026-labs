@@ -31,6 +31,7 @@ public class RankEventBackgroundService : BackgroundService
         
         await _channel.ExchangeDeclareAsync("events.rank.calculated", ExchangeType.Fanout, durable: true, cancellationToken: stoppingToken);
         
+        // Эксклюзивная очередь подключенная к fanout Обменнику
         _queueName = $"valuator.rank.notifications.{Guid.NewGuid()}";
         await _channel.QueueDeclareAsync(_queueName, durable: false, exclusive: true, autoDelete: true, cancellationToken: stoppingToken);
         await _channel.QueueBindAsync(_queueName, "events.rank.calculated", "", cancellationToken: stoppingToken);
@@ -52,6 +53,8 @@ public class RankEventBackgroundService : BackgroundService
             if (rankEvent != null)
             {
                 _logger.LogInformation("Received RankCalculated for ID {Id}: {Rank}", rankEvent.Id, rankEvent.Rank);
+                // отправка уведомлений через канал ValuatorSignalR в Redis
+                // Redis Backplane игнорирует отправку клиенту, которого нет на этом сервере(app1, app2) 
                 await _hubContext.Clients.Group($"rank-{rankEvent.Id}").SendAsync("RankCalculated", rankEvent.Rank);
             }
             await _channel!.BasicAckAsync(ea.DeliveryTag, false);
