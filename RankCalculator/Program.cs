@@ -10,16 +10,25 @@ class Program
 {
     private const string RankExchange = "events.rank.calculated";
     private const string QueueName = "valuator.processing.rank";
+    
+    private static readonly Dictionary<string, IConnectionMultiplexer> _redisConnections = new();
 
     public static async Task Main(string[] args)
     {
         Console.WriteLine("Consumer started");
 
-        string redisHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? "localhost";
+        string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
+        string ruAddr   = Environment.GetEnvironmentVariable("DB_RU")   ?? "localhost:6380";
+        string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381";
+        string asiaAddr = Environment.GetEnvironmentVariable("DB_ASIA") ?? "localhost:6382";
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
         
-        var redis = await ConnectionMultiplexer.ConnectAsync(redisHost);
-        IDatabase db = redis.GetDatabase();
+        _redisConnections["MAIN"] = await ConnectionMultiplexer.ConnectAsync(mainAddr);
+        _redisConnections["RU"]   = await ConnectionMultiplexer.ConnectAsync(ruAddr);
+        _redisConnections["EU"]   = await ConnectionMultiplexer.ConnectAsync(euAddr);
+        _redisConnections["ASIA"] = await ConnectionMultiplexer.ConnectAsync(asiaAddr);
+        
+        IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
         
         ConnectionFactory factory = new ConnectionFactory
         {
@@ -48,19 +57,19 @@ class Program
             await using IChannel channel = await connection.CreateChannelAsync();
             await DeclareTopologyAsync(channel); // только первый экземпляр создаст очередь (Идемпотентность)
         
-            await RunConsumer(channel, db);
+            await RunConsumer(channel, mainDb);
 
             Console.WriteLine("--- Consumer is running. Press Ctrl+C to stop ---");
             await Task.Delay(Timeout.Infinite);
         }
     }
 
-    private static async Task RunConsumer(IChannel channel, IDatabase db)
+    private static async Task RunConsumer(IChannel channel, IDatabase mainDb)
     {
         AsyncEventingBasicConsumer consumer = new(channel);
         
         // Обработчик события, запустит ConsumeAsync после получения сообщения
-        consumer.ReceivedAsync += (_, eventArgs) => ConsumeAsync(channel, eventArgs, db);
+        consumer.ReceivedAsync += (_, eventArgs) => ConsumeAsync(channel, eventArgs, mainDb);
         
         // Остальные экземпляры подписываются на очередь
         await channel.BasicConsumeAsync(
@@ -74,7 +83,7 @@ class Program
     /// Обрабатывает входящее событие:
     ///     считает Rank, записывает в БД, публикует RankCalculated, выводит в консоль и подтверждает.
     /// </summary>
-    private static async Task ConsumeAsync(IChannel channel, BasicDeliverEventArgs eventArgs, IDatabase db)
+    private static async Task ConsumeAsync(IChannel channel, BasicDeliverEventArgs eventArgs, IDatabase mainDb)
     {
         // pa5 Принудительное ожидание для проверки эффекта
         TimeSpan interval = TimeSpan.FromSeconds(new Random().Next(3, 15));
@@ -84,8 +93,21 @@ class Program
         string id = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
         Console.WriteLine($"Received task for ID: {id}");
         
+        // pa6
+        string? region = await mainDb.StringGetAsync(id);
+        if (string.IsNullOrEmpty(region))
+        {
+            Console.WriteLine($"ERROR: Region for ID {id} not found in DB_MAIN");
+            await channel.BasicAckAsync(eventArgs.DeliveryTag, false);
+            return;
+        }
+        
+        Console.WriteLine($"LOOKUP: {id}, {region}");
+        
+        IDatabase shardDb = _redisConnections[region].GetDatabase();
+        
         // pa3
-        string? text = await db.StringGetAsync($"TEXT-{id}");
+        string? text = await shardDb.StringGetAsync($"TEXT-{id}");
         
         if (!string.IsNullOrEmpty(text))
         {
@@ -99,7 +121,7 @@ class Program
             string rankString = Math.Round(rank, 4)
                 .ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-            await db.StringSetAsync($"RANK-{id}", rankString);
+            await shardDb.StringSetAsync($"RANK-{id}", rankString);
             
             // (pa4) публикация события RankCalculated
             await PublishRankEventAsync(channel, id, rank);

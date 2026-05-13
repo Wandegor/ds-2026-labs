@@ -1,13 +1,35 @@
 ﻿version: '3.9'
 
 services:
-  redis:
+  redis-main:
     image: redis:latest
-    container_name: valuator-redis
+    container_name: valuator-redis-main
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
+    networks:
+      - app-network
+  
+  redis-ru:
+    image: redis:latest
+    container_name: valuator-redis-ru
+    ports:
+      - "6380:6379"
+    networks:
+      - app-network
+
+  redis-eu:
+    image: redis:latest
+    container_name: valuator-redis-eu
+    ports:
+      - "6381:6379"
+    networks:
+      - app-network
+
+  redis-asia:
+    image: redis:latest
+    container_name: valuator-redis-asia
+    ports:
+      - "6382:6379"
     networks:
       - app-network
 
@@ -20,53 +42,23 @@ services:
     networks:
       - app-network
 
-  rank-calculator:
-    build:
-      context: ./RankCalculator
-      dockerfile: Dockerfile
-    # container_name: valuator-rank-calc
-    depends_on:
-      - redis
-      - rabbitmq
-    environment:
-      - REDIS_HOST=redis
-      - RABBITMQ_HOST=rabbitmq
-    networks:
-      - app-network
-  
-  events-logger-1:
-    build:
-      context: ./EventsLogger
-      dockerfile: Dockerfile
-    depends_on:
-      - rabbitmq
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-    networks:
-      - app-network
-
-  events-logger-2:
-    build:
-      context: ./EventsLogger
-      dockerfile: Dockerfile
-    depends_on:
-      - rabbitmq
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-    networks:
-      - app-network
-
   app1:
     build:
       context: .
       dockerfile: Valuator/Dockerfile
     container_name: valuator-app1
     depends_on:
-      - redis
+      - redis-main
+      - redis-ru
+      - redis-eu
+      - redis-asia
       - rabbitmq
     environment:
-      - ConnectionStrings__Redis=redis:6379
-      - RabbitMQ__Host=rabbitmq 
+      - DB_MAIN=redis-main:6379
+      - DB_RU=redis-ru:6379
+      - DB_EU=redis-eu:6379
+      - DB_ASIA=redis-asia:6379
+      - RabbitMQ_Host=rabbitmq
     ports:
       - "5001:8080"
     networks:
@@ -78,13 +70,62 @@ services:
       dockerfile: Valuator/Dockerfile
     container_name: valuator-app2
     depends_on:
-      - redis
+      - redis-main
+      - redis-ru
+      - redis-eu
+      - redis-asia
       - rabbitmq
     environment:
-      - ConnectionStrings__Redis=redis:6379
-      - RabbitMQ__Host=rabbitmq
+      - DB_MAIN=redis-main:6379
+      - DB_RU=redis-ru:6379
+      - DB_EU=redis-eu:6379
+      - DB_ASIA=redis-asia:6379
+      - RabbitMQ_Host=rabbitmq
     ports:
       - "5002:8080"
+    networks:
+      - app-network
+
+  rank-calculator:
+    build:
+      context: ./RankCalculator
+      dockerfile: Dockerfile
+    depends_on:
+      - redis-main
+      - redis-ru
+      - redis-eu
+      - redis-asia
+      - rabbitmq
+    environment:
+      - DB_MAIN=redis-main:6379
+      - DB_RU=redis-ru:6379
+      - DB_EU=redis-eu:6379
+      - DB_ASIA=redis-asia:6379
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - app-network
+  
+  events-logger-1:
+    build:
+      context: ./EventsLogger
+      dockerfile: Dockerfile
+    container_name: valuator-event-logger-1
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - app-network
+
+  events-logger-2:
+    build:
+      context: ./EventsLogger
+      dockerfile: Dockerfile
+    container_name: valuator-event-logger-2
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
     networks:
       - app-network
 
@@ -104,6 +145,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  redis_data:

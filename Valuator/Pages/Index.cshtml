@@ -10,6 +10,16 @@
         <div class="col-10">
             @* отсюда OnPost(string text) получит значение *@
             <textarea name="text" rows="5" cols="50"></textarea>
+            
+            <div style="margin: 10px 0;">
+                <label>Регион:</label>
+                <select name="Region" required>
+                    <option value="RU">Russia</option>
+                    <option value="EU">France/Germany</option>
+                    <option value="ASIA">UAE/India</option>
+                </select>
+            </div>
+            
             <input type="submit"/>
         </div>
     </form>

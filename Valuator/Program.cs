@@ -13,19 +13,44 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddRazorPages();
-        var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-        var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+        
+        // Environment Variables
+        var mainConnString = builder.Configuration["DB_MAIN"] ?? "localhost:6379";
+        var ruConnString   = builder.Configuration["DB_RU"]   ?? "localhost:6380";
+        var euConnString   = builder.Configuration["DB_EU"]   ?? "localhost:6381";
+        var asiaConnString = builder.Configuration["DB_ASIA"] ?? "localhost:6382";
+        
+        var connections = new Dictionary<string, IConnectionMultiplexer>
+        {
+            ["MAIN"] = ConnectionMultiplexer.Connect(mainConnString),
+            ["RU"]   = ConnectionMultiplexer.Connect(ruConnString),
+            ["EU"]   = ConnectionMultiplexer.Connect(euConnString),
+            ["ASIA"] = ConnectionMultiplexer.Connect(asiaConnString)
+        };
+        
+        // var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+        // var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+        
+        // Словарь подключений
+        builder.Services.AddSingleton<IDictionary<string, IConnectionMultiplexer>>(connections);
+        
+        var mainRedis = connections["MAIN"];
         
         // Antiforgery токен будет хранится и доставаться не где то на диске, а в бд
          // app1 генерит токен, сохраняет ключ в Redis (или использует уже существующий общий ключ).
          // app2 проверяет токен, обращается к  Redis, находит нужный ключ и расшифровывает токен.
-        builder.Services.AddDataProtection().PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
-        builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
-
+        builder.Services.AddDataProtection().PersistKeysToStackExchangeRedis(mainRedis, "DataProtection-Keys");
+        
+        builder.Services.AddSignalR()
+            .AddStackExchangeRedis(mainConnString, options =>
+            {
+                options.Configuration.ChannelPrefix = RedisChannel.Literal("ValuatorSignalR");
+            });
+        
         // RabbitMQ
         builder.Services.AddSingleton<ConnectionFactory>(sp => new ConnectionFactory
         {
-            HostName = builder.Configuration.GetSection("RabbitMQ")["Host"] ?? "localhost" 
+            HostName = builder.Configuration["RabbitMQ_Host"] ?? "localhost"
         });
         
         builder.Services.AddSingleton<IConnection>(sp =>
@@ -50,12 +75,6 @@ public class Program
         
         builder.Services.AddHostedService<RankEventBackgroundService>();
         
-        builder.Services.AddSignalR()
-            .AddStackExchangeRedis(redisConnectionString, options =>
-            {
-                options.Configuration.ChannelPrefix = RedisChannel.Literal("ValuatorSignalR");
-            });
-        
         var app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
@@ -63,11 +82,8 @@ public class Program
             app.UseExceptionHandler("/Error");
         }
         app.UseStaticFiles();
-
         app.UseRouting();
-
         app.UseAuthorization();
-
         app.MapRazorPages();
         
         app.MapHub<RankNotificationHub>("/rankHub");

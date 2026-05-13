@@ -16,13 +16,19 @@ public class IndexModel : PageModel
     private const string QueueName = "valuator.processing.rank";
     
     private readonly ILogger<IndexModel> _logger;
-    private readonly IConnectionMultiplexer _redis;
+    private readonly IDictionary<string, IConnectionMultiplexer> _redisConnections;
     private readonly IConnection _rabbitConnection;
+    
+    [BindProperty]
+    public string Region { get; set; }
 
-    public IndexModel(ILogger<IndexModel> logger,  IConnectionMultiplexer redis, IConnection rabbitConnection)
+    public IndexModel(
+        ILogger<IndexModel> logger,  
+        IDictionary<string, IConnectionMultiplexer> redisConnections, 
+        IConnection rabbitConnection)
     {
         _logger = logger;
-        _redis = redis;
+        _redisConnections = redisConnections;
         _rabbitConnection = rabbitConnection;
     }
 
@@ -30,40 +36,38 @@ public class IndexModel : PageModel
     {
 
     }
-
-    private static string ComputeHash(string input)
-    {
-        using var sha256 = SHA256.Create();
-        byte[] bytes = Encoding.UTF8.GetBytes(input);
-        byte[] hashBytes = sha256.ComputeHash(bytes);
-        return Convert.ToHexString(hashBytes);
-    }
     
     public async Task<IActionResult> OnPostAsync(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
+        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrEmpty(Region))
         {
             return Page();
         }
         
         _logger.LogDebug(text);
-        
-        IDatabase db = _redis.GetDatabase();
+
+        IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
         string id = Guid.NewGuid().ToString();
         
-        // вернул сохранение самого текста
-        db.StringSet($"TEXT-{id}", text);
+        Console.WriteLine($"LOOKUP: {id}, {Region}");
+        
+        // Id - Region
+        mainDb.StringSet(id, Region);
+        
+        // Сам текст в в шард по ShardKey(Region)
+        IDatabase shardDb = _redisConnections[Region].GetDatabase();
+        shardDb.StringSet($"TEXT-{id}", text);
         
         // (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey
         double similarity = 0.0f;
         string setName = "SetWithTexts";
-        if (!db.SetAdd(setName, ComputeHash(text))) // повторка
+        if (!shardDb.SetAdd(setName, ComputeHash(text))) // повторка
         {
             similarity = 1.0;
         }
         
         string similarityKey = "SIMILARITY-" + id;
-        db.StringSet(similarityKey, similarity);
+        shardDb.StringSet(similarityKey, similarity);
         
         // (pa4) событие SimilarityCalculated
         await PublishSimilarityEventAsync(id, similarity);
@@ -106,5 +110,13 @@ public class IndexModel : PageModel
             routingKey: "",
             body: messageData
         );
+    }
+    
+    private static string ComputeHash(string input)
+    {
+        using var sha256 = SHA256.Create();
+        byte[] bytes = Encoding.UTF8.GetBytes(input);
+        byte[] hashBytes = sha256.ComputeHash(bytes);
+        return Convert.ToHexString(hashBytes);
     }
 }

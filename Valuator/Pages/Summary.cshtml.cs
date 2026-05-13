@@ -12,12 +12,14 @@ namespace Valuator.Pages;
 public class SummaryModel : PageModel
 {
     private readonly ILogger<SummaryModel> _logger;
-    private readonly IConnectionMultiplexer _redis;
+    private readonly IDictionary<string, IConnectionMultiplexer> _redisConnections;
 
-    public SummaryModel(ILogger<SummaryModel> logger, IConnectionMultiplexer redis)
+    public SummaryModel(
+        ILogger<SummaryModel> logger,
+        IDictionary<string, IConnectionMultiplexer> redisConnections)
     {
         _logger = logger;
-        _redis = redis;
+        _redisConnections = redisConnections;
     }
 
     public string Id { get; set; }
@@ -29,10 +31,20 @@ public class SummaryModel : PageModel
         Id = id;    
         _logger.LogDebug(id);
 
-        IDatabase db = _redis.GetDatabase();
-        // (pa1) проинициализировать свойства Rank и Similarity значениями из БД (Redis)
+        var mainDb = _redisConnections["MAIN"].GetDatabase();
         
-        string? rankValue = db.StringGet($"RANK-{id}");
+        string? region = mainDb.StringGet(id);
+        
+        if (string.IsNullOrEmpty(region))
+        {
+            _logger.LogWarning($"Region for ID {id} not found.");
+            return;
+        }
+        Console.WriteLine($"LOOKUP: {id}, {region}");
+
+        var shardDb = _redisConnections[region].GetDatabase();
+            
+        string? rankValue = shardDb.StringGet($"RANK-{id}");
         if (double.TryParse(rankValue, 
                 NumberStyles.Float, 
                 CultureInfo.InvariantCulture, 
@@ -41,7 +53,7 @@ public class SummaryModel : PageModel
         else
             Rank = null;
         
-        string? similitaryValue = db.StringGet($"SIMILARITY-{id}");
+        string? similitaryValue =shardDb.StringGet($"SIMILARITY-{id}");
         if (double.TryParse(similitaryValue,
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
