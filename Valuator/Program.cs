@@ -10,17 +10,18 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddRazorPages();
         
-        // Environment Variables
-        var mainConnString = builder.Configuration["DB_MAIN"] ?? "localhost:6379";
-        var ruConnString   = builder.Configuration["DB_RU"]   ?? "localhost:6380";
-        var euConnString   = builder.Configuration["DB_EU"]   ?? "localhost:6381";
-        var asiaConnString = builder.Configuration["DB_ASIA"] ?? "localhost:6382";
+        // Environment Variables из Docker(так-то из всех источников конфигурации, но именно здесь из Docker)
+        string mainConnString = builder.Configuration["DB_MAIN"] ?? "localhost:6379";
+        string ruConnString   = builder.Configuration["DB_RU"]   ?? "localhost:6380";
+        string euConnString   = builder.Configuration["DB_EU"]   ?? "localhost:6381";
+        string asiaConnString = builder.Configuration["DB_ASIA"] ?? "localhost:6382";
         
-        var connections = new Dictionary<string, IConnectionMultiplexer>
+        // Cловарь подключений (постоянные TCP-сессии)
+        Dictionary<string, IConnectionMultiplexer> connections = new()
         {
             ["MAIN"] = ConnectionMultiplexer.Connect(mainConnString),
             ["RU"]   = ConnectionMultiplexer.Connect(ruConnString),
@@ -31,10 +32,10 @@ public class Program
         // var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
         // var redis = ConnectionMultiplexer.Connect(redisConnectionString);
         
-        // Словарь подключений
+        // Словарь подключений регестрируется как Singlton
         builder.Services.AddSingleton<IDictionary<string, IConnectionMultiplexer>>(connections);
         
-        var mainRedis = connections["MAIN"];
+        IConnectionMultiplexer mainRedis = connections["MAIN"];
         
         // Antiforgery токен будет хранится и доставаться не где то на диске, а в бд
          // app1 генерит токен, сохраняет ключ в Redis (или использует уже существующий общий ключ).
@@ -56,7 +57,7 @@ public class Program
         builder.Services.AddSingleton<IConnection>(sp =>
         {
             // ожидание запуска Rabbit
-            var factory = sp.GetRequiredService<ConnectionFactory>();
+            ConnectionFactory factory = sp.GetRequiredService<ConnectionFactory>();
             IConnection? connection = null;
             while (connection == null)
             {
@@ -75,7 +76,7 @@ public class Program
         
         builder.Services.AddHostedService<RankEventBackgroundService>();
         
-        var app = builder.Build();
+        WebApplication app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
         {

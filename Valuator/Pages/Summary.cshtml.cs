@@ -31,7 +31,7 @@ public class SummaryModel : PageModel
         Id = id;    
         _logger.LogDebug(id);
 
-        var mainDb = _redisConnections["MAIN"].GetDatabase();
+        IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
         
         string? region = mainDb.StringGet(id);
         
@@ -42,7 +42,7 @@ public class SummaryModel : PageModel
         }
         Console.WriteLine($"LOOKUP: {id}, {region}");
 
-        var shardDb = _redisConnections[region].GetDatabase();
+        IDatabase shardDb = _redisConnections[region].GetDatabase();
             
         string? rankValue = shardDb.StringGet($"RANK-{id}");
         if (double.TryParse(rankValue, 

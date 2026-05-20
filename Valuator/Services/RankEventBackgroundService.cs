@@ -49,7 +49,7 @@ public class RankEventBackgroundService : BackgroundService
         try
         {
             string body = Encoding.UTF8.GetString(ea.Body.ToArray());
-            var rankEvent = JsonSerializer.Deserialize<RankCalculatedEvent>(body);
+            RankCalculatedEvent? rankEvent = JsonSerializer.Deserialize<RankCalculatedEvent>(body);
             if (rankEvent != null)
             {
                 _logger.LogInformation("Received RankCalculated for ID {Id}: {Rank}", rankEvent.Id, rankEvent.Rank);

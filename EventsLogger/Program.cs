@@ -13,7 +13,7 @@ class Program
     {
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
         
-        var factory = new ConnectionFactory { HostName = rabbitHost };
+        ConnectionFactory factory = new() { HostName = rabbitHost };
         
         IConnection? connection = null;
         Console.WriteLine("Waiting for RabbitMQ...");
@@ -74,7 +74,7 @@ class Program
     /// </summary>
     private static async Task RunConsumer(IChannel channel, string queueName)
     {
-        var consumer = new AsyncEventingBasicConsumer(channel);
+        AsyncEventingBasicConsumer consumer = new(channel);
         consumer.ReceivedAsync += (_, eventArgs) => ConsumeAsync(channel, eventArgs);
         
         await channel.BasicConsumeAsync(

@@ -1,0 +1,8 @@
+# Применять правила ко всем файлам C#
+[*.cs]
+
+# 1. Запретить var, если тип очевиден из правой части (например: var x = 5; или var worker = new RankCalculator();)
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
+
+csharp_style_var_elsewhere = false:warning

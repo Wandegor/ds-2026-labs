@@ -17,6 +17,7 @@ class Program
     {
         Console.WriteLine("Consumer started");
 
+        // Получает Env Var из Docker
         string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
         string ruAddr   = Environment.GetEnvironmentVariable("DB_RU")   ?? "localhost:6380";
         string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381";
@@ -30,7 +31,7 @@ class Program
         
         IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
         
-        ConnectionFactory factory = new ConnectionFactory
+        ConnectionFactory factory = new()
         {
             HostName = rabbitHost,
         };
