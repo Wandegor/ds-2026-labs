@@ -12,8 +12,15 @@ class Program
     public static async Task Main(string[] args)
     {
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+        string rabbitUser = Environment.GetEnvironmentVariable("RabbitMQ_User") ?? "guest";
+        string rabbitPass = Environment.GetEnvironmentVariable("RabbitMQ_Pass") ?? "guest";
         
-        ConnectionFactory factory = new() { HostName = rabbitHost };
+        ConnectionFactory factory = new()
+        {
+            HostName = rabbitHost,
+            UserName = rabbitUser,
+            Password = rabbitPass,
+        };
         
         IConnection? connection = null;
         Console.WriteLine("Waiting for RabbitMQ...");

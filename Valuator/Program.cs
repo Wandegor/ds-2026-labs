@@ -51,7 +51,9 @@ public class Program
         // RabbitMQ
         builder.Services.AddSingleton<ConnectionFactory>(sp => new ConnectionFactory
         {
-            HostName = builder.Configuration["RabbitMQ_Host"] ?? "localhost"
+            HostName = builder.Configuration["RabbitMQ_Host"] ?? "localhost",
+            UserName = builder.Configuration["RabbitMQ_User"] ?? "guest", // по дефолту guest
+            Password = builder.Configuration["RabbitMQ_Pass"] ?? "guest"
         });
         
         builder.Services.AddSingleton<IConnection>(sp =>

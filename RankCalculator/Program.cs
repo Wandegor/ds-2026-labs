@@ -23,6 +23,8 @@ class Program
         string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381";
         string asiaAddr = Environment.GetEnvironmentVariable("DB_ASIA") ?? "localhost:6382";
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+        string rabbitUser = Environment.GetEnvironmentVariable("RabbitMQ_User") ?? "guest";
+        string rabbitPass = Environment.GetEnvironmentVariable("RabbitMQ_Pass") ?? "guest";
         
         _redisConnections["MAIN"] = await ConnectionMultiplexer.ConnectAsync(mainAddr);
         _redisConnections["RU"]   = await ConnectionMultiplexer.ConnectAsync(ruAddr);
@@ -34,6 +36,8 @@ class Program
         ConnectionFactory factory = new()
         {
             HostName = rabbitHost,
+            UserName = rabbitUser,
+            Password = rabbitPass,
         };
         
         IConnection? connection = null;

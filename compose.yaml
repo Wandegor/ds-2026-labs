@@ -4,6 +4,7 @@ services:
   redis-main:
     image: redis:latest
     container_name: valuator-redis-main
+    command: redis-server --requirepass wandersPassword
     ports:
       - "6379:6379"
     networks:
@@ -12,6 +13,7 @@ services:
   redis-ru:
     image: redis:latest
     container_name: valuator-redis-ru
+    command: redis-server --requirepass wandersPassword
     ports:
       - "6380:6379"
     networks:
@@ -20,6 +22,7 @@ services:
   redis-eu:
     image: redis:latest
     container_name: valuator-redis-eu
+    command: redis-server --requirepass wandersPassword
     ports:
       - "6381:6379"
     networks:
@@ -28,6 +31,7 @@ services:
   redis-asia:
     image: redis:latest
     container_name: valuator-redis-asia
+    command: redis-server --requirepass wandersPassword
     ports:
       - "6382:6379"
     networks:
@@ -36,6 +40,10 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: valuator-rabbitmq
+    # для Аутентификация    
+    environment:
+      - RABBITMQ_DEFAULT_USER=valuator_admin
+      - RABBITMQ_DEFAULT_PASS=wandersRabbitPassword
     ports:
       - "5672:5672"  
       - "15672:15672" # Порт для браузера (админка)
@@ -54,11 +62,13 @@ services:
       - redis-asia
       - rabbitmq
     environment:
-      - DB_MAIN=redis-main:6379
-      - DB_RU=redis-ru:6379
-      - DB_EU=redis-eu:6379
-      - DB_ASIA=redis-asia:6379
+      - DB_MAIN=redis-main:6379,password=wandersPassword
+      - DB_RU=redis-ru:6379,password=wandersPassword
+      - DB_EU=redis-eu:6379,password=wandersPassword
+      - DB_ASIA=redis-asia:6379,password=wandersPassword
       - RabbitMQ_Host=rabbitmq
+      - RabbitMQ_User=valuator_admin
+      - RabbitMQ_Pass=wandersRabbitPassword
     ports:
       - "5001:8080"
     networks:
@@ -76,11 +86,13 @@ services:
       - redis-asia
       - rabbitmq
     environment:
-      - DB_MAIN=redis-main:6379
-      - DB_RU=redis-ru:6379
-      - DB_EU=redis-eu:6379
-      - DB_ASIA=redis-asia:6379
+      - DB_MAIN=redis-main:6379,password=wandersPassword
+      - DB_RU=redis-ru:6379,password=wandersPassword
+      - DB_EU=redis-eu:6379,password=wandersPassword
+      - DB_ASIA=redis-asia:6379,password=wandersPassword
       - RabbitMQ_Host=rabbitmq
+      - RabbitMQ_User=valuator_admin
+      - RabbitMQ_Pass=wandersRabbitPassword
     ports:
       - "5002:8080"
     networks:
@@ -97,11 +109,13 @@ services:
       - redis-asia
       - rabbitmq
     environment:
-      - DB_MAIN=redis-main:6379
-      - DB_RU=redis-ru:6379
-      - DB_EU=redis-eu:6379
-      - DB_ASIA=redis-asia:6379
+      - DB_MAIN=redis-main:6379,password=wandersPassword
+      - DB_RU=redis-ru:6379,password=wandersPassword
+      - DB_EU=redis-eu:6379,password=wandersPassword
+      - DB_ASIA=redis-asia:6379,password=wandersPassword
       - RABBITMQ_HOST=rabbitmq
+      - RabbitMQ_User=valuator_admin
+      - RabbitMQ_Pass=wandersRabbitPassword
     networks:
       - app-network
   
@@ -114,6 +128,8 @@ services:
       - rabbitmq
     environment:
       - RABBITMQ_HOST=rabbitmq
+      - RabbitMQ_User=valuator_admin
+      - RabbitMQ_Pass=wandersRabbitPassword
     networks:
       - app-network
 
@@ -126,6 +142,8 @@ services:
       - rabbitmq
     environment:
       - RABBITMQ_HOST=rabbitmq
+      - RabbitMQ_User=valuator_admin
+      - RabbitMQ_Pass=wandersRabbitPassword
     networks:
       - app-network
 
