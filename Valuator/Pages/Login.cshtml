@@ -1,0 +1,21 @@
+@page
+@model Valuator.Pages.LoginModel
+@{
+    ViewData["Title"] = "Вход";
+}
+
+<h2>Вход в систему</h2>
+
+<form method="post">
+    <div class="text-danger" asp-validation-summary="All"></div>
+    <div>
+        <label>Логин:</label>
+        <input asp-for="Username" required />
+    </div>
+    <div>
+        <label>Пароль:</label>
+        <input asp-for="Password" type="password" required />
+    </div>
+    <button type="submit">Войти</button>
+</form> 
+<p><a asp-page="/Register">Нет аккаунта? Зарегистрироваться</a></p>

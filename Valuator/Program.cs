@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using RabbitMQ.Client;
 using StackExchange.Redis;
@@ -29,8 +30,11 @@ public class Program
             ["ASIA"] = ConnectionMultiplexer.Connect(asiaConnString)
         };
         
-        // var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-        // var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.LoginPath = "/Login"; // Если пользователь не авторизован, его перекинет сюда
+            });
         
         // Словарь подключений регестрируется как Singlton
         builder.Services.AddSingleton<IDictionary<string, IConnectionMultiplexer>>(connections);
@@ -86,6 +90,7 @@ public class Program
         }
         app.UseStaticFiles();
         app.UseRouting();
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapRazorPages();
         
