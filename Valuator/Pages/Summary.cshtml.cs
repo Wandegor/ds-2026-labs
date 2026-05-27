@@ -13,6 +13,8 @@ using Valuator.Models;
 
 namespace Valuator.Pages;
 
+// [Authorize] смотрит HttpContext.User
+// пусто - редирект /Login, иначе распознал ClaimsPrincipal
 [Authorize]
 public class SummaryModel : PageModel
 {

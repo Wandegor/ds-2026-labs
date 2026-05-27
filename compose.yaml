@@ -45,7 +45,7 @@ services:
       - RABBITMQ_DEFAULT_USER=valuator_admin
       - RABBITMQ_DEFAULT_PASS=wandersRabbitPassword
     ports:
-      - "5672:5672"  
+      # - "5673:5672"  
       - "15672:15672" # Порт для браузера (админка)
     networks:
       - app-network
