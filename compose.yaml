@@ -100,8 +100,8 @@ services:
 
   rank-calculator:
     build:
-      context: ./RankCalculator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: RankCalculator/Dockerfile
     depends_on:
       - redis-main
       - redis-ru
