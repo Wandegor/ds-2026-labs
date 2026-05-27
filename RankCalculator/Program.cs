@@ -3,6 +3,7 @@ using System.Text.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StackExchange.Redis;
+using ClassLibrary1;
 
 namespace RankCalculator;
 
@@ -16,20 +17,18 @@ class Program
     public static async Task Main(string[] args)
     {
         Console.WriteLine("Consumer started");
+     
+        Library.InitDataBases();
 
         // Получает Env Var из Docker
-        string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
-        string ruAddr   = Environment.GetEnvironmentVariable("DB_RU")   ?? "localhost:6380";
-        string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381";
-        string asiaAddr = Environment.GetEnvironmentVariable("DB_ASIA") ?? "localhost:6382";
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
         
-        _redisConnections["MAIN"] = await ConnectionMultiplexer.ConnectAsync(mainAddr);
-        _redisConnections["RU"]   = await ConnectionMultiplexer.ConnectAsync(ruAddr);
-        _redisConnections["EU"]   = await ConnectionMultiplexer.ConnectAsync(euAddr);
-        _redisConnections["ASIA"] = await ConnectionMultiplexer.ConnectAsync(asiaAddr);
+        // string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
         
-        IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
+        // _redisConnections["MAIN"] = await ConnectionMultiplexer.ConnectAsync(mainAddr);
+        
+        // IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
+        IDatabase mainDb = Library.GetDatabase("MAIN");
         
         ConnectionFactory factory = new()
         {

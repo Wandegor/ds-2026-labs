@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using ClassLibrary1;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RabbitMQ.Client;
@@ -16,7 +17,7 @@ public class IndexModel : PageModel
     private const string QueueName = "valuator.processing.rank";
     
     private readonly ILogger<IndexModel> _logger;
-    private readonly IDictionary<string, IConnectionMultiplexer> _redisConnections;
+    // private readonly IDictionary<string, IConnectionMultiplexer> _redisConnections;
     private readonly IConnection _rabbitConnection;
     
     [BindProperty]
@@ -28,7 +29,7 @@ public class IndexModel : PageModel
         IConnection rabbitConnection)
     {
         _logger = logger;
-        _redisConnections = redisConnections;
+        // _redisConnections = redisConnections;
         _rabbitConnection = rabbitConnection;
     }
 
@@ -46,7 +47,7 @@ public class IndexModel : PageModel
         
         _logger.LogDebug(text);
 
-        IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
+        IDatabase mainDb = Library.GetDatabase( "MAIN" );
         string id = Guid.NewGuid().ToString();
         
         Console.WriteLine($"LOOKUP: {id}, {Region}");
@@ -55,7 +56,7 @@ public class IndexModel : PageModel
         mainDb.StringSet(id, Region);
         
         // Сам текст в в шард по ShardKey(Region)
-        IDatabase shardDb = _redisConnections[Region].GetDatabase();
+        IDatabase shardDb = Library.GetDatabase(Region);
         shardDb.StringSet($"TEXT-{id}", text);
         
         // (pa1) посчитать similarity и сохранить в БД (Redis) по ключу similarityKey

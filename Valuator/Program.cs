@@ -1,8 +1,9 @@
+using ClassLibrary1;
 using Microsoft.AspNetCore.DataProtection;
 using RabbitMQ.Client;
 using StackExchange.Redis;
 using Valuator.Hubs;
-using Valuator.Services;
+using Valuator.Services;            
 
 namespace Valuator;
 
@@ -19,6 +20,8 @@ public class Program
         string ruConnString   = builder.Configuration["DB_RU"]   ?? "localhost:6380";
         string euConnString   = builder.Configuration["DB_EU"]   ?? "localhost:6381";
         string asiaConnString = builder.Configuration["DB_ASIA"] ?? "localhost:6382";
+
+        Library.InitDataBases();
         
         // Cловарь подключений (постоянные TCP-сессии)
         Dictionary<string, IConnectionMultiplexer> connections = new()

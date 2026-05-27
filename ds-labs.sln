@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -13,6 +13,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RankCalculator", "RankCalculator\RankCalculator.csproj", "{14680FC8-944C-474C-85D5-A6DA51E7C396}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventsLogger", "EventsLogger\EventsLogger.csproj", "{6981ED6F-163C-4924-9596-D1039F4F6BD3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectionLibrary", "ConnectionLibrary\ConnectionLibrary.csproj", "{ED4877F4-4F2A-465D-B77B-073C141B5CFF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,6 +34,10 @@ Global
 		{6981ED6F-163C-4924-9596-D1039F4F6BD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6981ED6F-163C-4924-9596-D1039F4F6BD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6981ED6F-163C-4924-9596-D1039F4F6BD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED4877F4-4F2A-465D-B77B-073C141B5CFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED4877F4-4F2A-465D-B77B-073C141B5CFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED4877F4-4F2A-465D-B77B-073C141B5CFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED4877F4-4F2A-465D-B77B-073C141B5CFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
