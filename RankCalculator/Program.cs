@@ -18,10 +18,10 @@ class Program
         Console.WriteLine("Consumer started");
 
         // Получает Env Var из Docker
-        string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
-        string ruAddr   = Environment.GetEnvironmentVariable("DB_RU")   ?? "localhost:6380";
-        string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381";
-        string asiaAddr = Environment.GetEnvironmentVariable("DB_ASIA") ?? "localhost:6382";
+        string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379,password=wandersPassword";
+        string ruAddr   = Environment.GetEnvironmentVariable("DB_RU")   ?? "localhost:6380,password=wandersPassword";
+        string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381,password=wandersPassword";
+        string asiaAddr = Environment.GetEnvironmentVariable("DB_ASIA") ?? "localhost:6382,password=wandersPassword";
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
         string rabbitUser = Environment.GetEnvironmentVariable("RabbitMQ_User") ?? "guest";
         string rabbitPass = Environment.GetEnvironmentVariable("RabbitMQ_Pass") ?? "guest";

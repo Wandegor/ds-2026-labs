@@ -7,7 +7,14 @@
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5141",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_MAIN": "localhost:6379,password=wandersPassword",
+        "DB_RU": "localhost:6380,password=wandersPassword",
+        "DB_EU": "localhost:6381,password=wandersPassword",
+        "DB_ASIA": "localhost:6382,password=wandersPassword",
+        "RabbitMQ_Host": "localhost",
+        "RabbitMQ_User": "valuator_admin",
+        "RabbitMQ_Pass": "wandersRabbitPassword"
       }
     }
   }
