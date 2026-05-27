@@ -2,13 +2,18 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
+using Valuator.Models;
 
 namespace Valuator.Pages;
+
+[Authorize]
 public class SummaryModel : PageModel
 {
     private readonly ILogger<SummaryModel> _logger;
@@ -26,23 +31,32 @@ public class SummaryModel : PageModel
     public double? Rank { get; set; }
     public double Similarity { get; set; }
 
-    public void OnGet(string id)
+    public IActionResult OnGet(string id)
     {
         Id = id;    
         _logger.LogDebug(id);
 
         IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
         
-        string? region = mainDb.StringGet(id);
+        string? jsonMetaData = mainDb.StringGet(id);
         
-        if (string.IsNullOrEmpty(region))
+        if (string.IsNullOrEmpty(jsonMetaData))
         {
-            _logger.LogWarning($"Region for ID {id} not found.");
-            return;
+            _logger.LogWarning($"Metadata for ID {id} not found.");
+            return RedirectToPage("/Index");
         }
-        Console.WriteLine($"LOOKUP: {id}, {region}");
-
-        IDatabase shardDb = _redisConnections[region].GetDatabase();
+        
+        DocumentMetadata? metadata = JsonSerializer.Deserialize<DocumentMetadata>(jsonMetaData);
+        if (metadata == null) return RedirectToPage("/Index");
+        
+        Console.WriteLine($"LOOKUP: {id}, {metadata.DbRegion}");
+        
+        // User.Identity.Name - имя из куки
+        if (metadata.Author != User.Identity?.Name)
+        {
+            return Forbid(); // 403
+        }
+        IDatabase shardDb = _redisConnections[metadata.DbRegion].GetDatabase();
             
         string? rankValue = shardDb.StringGet($"RANK-{id}");
         if (double.TryParse(rankValue, 
@@ -61,5 +75,7 @@ public class SummaryModel : PageModel
         {
             Similarity = sim;
         }
+        
+        return Page(); // рендер
     }
 }

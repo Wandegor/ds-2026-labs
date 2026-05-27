@@ -1,13 +1,16 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RabbitMQ.Client;
 using StackExchange.Redis;
+using Valuator.Models;
 
 namespace Valuator.Pages;
 
+[Authorize]
 public class IndexModel : PageModel
 {
     private const string SimilarityExchange = "events.similarity.calculated"; 
@@ -21,7 +24,7 @@ public class IndexModel : PageModel
     
     [BindProperty]
     public string Region { get; set; }
-
+    
     public IndexModel(
         ILogger<IndexModel> logger,  
         IDictionary<string, IConnectionMultiplexer> redisConnections, 
@@ -50,9 +53,16 @@ public class IndexModel : PageModel
         string id = Guid.NewGuid().ToString();
         
         Console.WriteLine($"LOOKUP: {id}, {Region}");
+
+        DocumentMetadata metadata = new()
+        {
+            DbRegion = Region,
+            Author = User.Identity?.Name ?? "Unknown"
+        };
+        string jsonMetadata = JsonSerializer.Serialize(metadata);
         
-        // Id - Region
-        mainDb.StringSet(id, Region);
+        // Id - Region, Author
+        mainDb.StringSet(id, jsonMetadata);
         
         // Сам текст в в шард по ShardKey(Region)
         IDatabase shardDb = _redisConnections[Region].GetDatabase();

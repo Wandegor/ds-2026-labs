@@ -3,6 +3,7 @@ using System.Text.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using StackExchange.Redis;
+using Valuator.Models;
 
 namespace RankCalculator;
 
@@ -98,18 +99,27 @@ class Program
         string id = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
         Console.WriteLine($"Received task for ID: {id}");
         
-        // pa6
-        string? region = await mainDb.StringGetAsync(id);
-        if (string.IsNullOrEmpty(region))
+        // pa6-pa7
+        string? metadataJson = await mainDb.StringGetAsync(id);
+        if (string.IsNullOrEmpty(metadataJson))
         {
-            Console.WriteLine($"ERROR: Region for ID {id} not found in DB_MAIN");
+            Console.WriteLine($"ERROR: Metadata for ID {id} not found in DB_MAIN");
             await channel.BasicAckAsync(eventArgs.DeliveryTag, false);
             return;
         }
         
-        Console.WriteLine($"LOOKUP: {id}, {region}");
+        DocumentMetadata? metadata = JsonSerializer.Deserialize<DocumentMetadata>(metadataJson);
+
+        if (metadata == null)
+        {
+            Console.WriteLine($"ERROR: Failed to deserialize metadata for ID {id}");
+            await channel.BasicAckAsync(eventArgs.DeliveryTag, false);
+            return;
+        }
         
-        IDatabase shardDb = _redisConnections[region].GetDatabase();
+        Console.WriteLine($"LOOKUP: {id}, {metadata.DbRegion}");
+        
+        IDatabase shardDb = _redisConnections[metadata.DbRegion].GetDatabase();
         
         // pa3
         string? text = await shardDb.StringGetAsync($"TEXT-{id}");
