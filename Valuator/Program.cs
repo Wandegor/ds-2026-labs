@@ -9,31 +9,22 @@ namespace Valuator;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddRazorPages();
         
-        // Environment Variables из Docker(так-то из всех источников конфигурации, но именно здесь из Docker)
-        string mainConnString = builder.Configuration["DB_MAIN"] ?? "localhost:6379";
-        string ruConnString   = builder.Configuration["DB_RU"]   ?? "localhost:6380";
-        string euConnString   = builder.Configuration["DB_EU"]   ?? "localhost:6381";
-        string asiaConnString = builder.Configuration["DB_ASIA"] ?? "localhost:6382";
-
-        Library.InitDataBases();
+        await Library.InitDataBases();
         
         // Cловарь подключений (постоянные TCP-сессии)
         Dictionary<string, IConnectionMultiplexer> connections = new()
         {
-            ["MAIN"] = ConnectionMultiplexer.Connect(mainConnString),
-            ["RU"]   = ConnectionMultiplexer.Connect(ruConnString),
-            ["EU"]   = ConnectionMultiplexer.Connect(euConnString),
-            ["ASIA"] = ConnectionMultiplexer.Connect(asiaConnString)
+            ["MAIN"] = Library.GetConnection("MAIN"),
+            ["RU"]   = Library.GetConnection("RU"),
+            ["EU"]   = Library.GetConnection("EU"),
+            ["ASIA"] = Library.GetConnection("ASIA")
         };
-        
-        // var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-        // var redis = ConnectionMultiplexer.Connect(redisConnectionString);
         
         // Словарь подключений регестрируется как Singlton
         builder.Services.AddSingleton<IDictionary<string, IConnectionMultiplexer>>(connections);
@@ -45,6 +36,7 @@ public class Program
          // app2 проверяет токен, обращается к  Redis, находит нужный ключ и расшифровывает токен.
         builder.Services.AddDataProtection().PersistKeysToStackExchangeRedis(mainRedis, "DataProtection-Keys");
         
+        string mainConnString = builder.Configuration["DB_MAIN"] ?? "localhost:6379";
         builder.Services.AddSignalR()
             .AddStackExchangeRedis(mainConnString, options =>
             {

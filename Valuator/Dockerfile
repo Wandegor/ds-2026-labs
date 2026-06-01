@@ -7,6 +7,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Valuator/Valuator.csproj", "Valuator/"]
+COPY ["ConnectionLibrary/ConnectionLibrary.csproj", "ConnectionLibrary/"]
+
 RUN dotnet restore "Valuator/Valuator.csproj"
 COPY . .
 WORKDIR "/src/Valuator"

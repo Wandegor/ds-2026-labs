@@ -8,6 +8,7 @@ public class Library
 
     public static async Task InitDataBases()
     {
+        // Environment Variables из Docker(так-то из всех источников конфигурации, но именно здесь из Docker)
         string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
         string ruAddr   = Environment.GetEnvironmentVariable("DB_RU")   ?? "localhost:6380";
         string euAddr   = Environment.GetEnvironmentVariable("DB_EU")   ?? "localhost:6381";
@@ -21,10 +22,19 @@ public class Library
     
     public static IDatabase GetDatabase(string region)
     {
-        if (!_redisConnections.TryGetValue(region, out var db))
+        if (!_redisConnections.TryGetValue(region, out IConnectionMultiplexer? db))
         {
             throw new ArgumentException($"No Redis connection for region '{region}'");
         }
         return db.GetDatabase();
+    }
+    
+    public static IConnectionMultiplexer GetConnection(string region)
+    {
+        if (!_redisConnections.TryGetValue(region, out IConnectionMultiplexer? db))
+        {
+            throw new ArgumentException($"No Redis connection for region '{region}'");
+        }
+        return db;
     }
 }

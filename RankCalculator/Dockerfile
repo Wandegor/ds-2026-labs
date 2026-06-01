@@ -6,11 +6,13 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["RankCalculator.csproj", "./"]
-RUN dotnet restore "RankCalculator.csproj"
+COPY ["RankCalculator/RankCalculator.csproj", "RankCalculator/"]
+COPY ["ConnectionLibrary/ConnectionLibrary.csproj", "ConnectionLibrary/"]
+
+RUN dotnet restore "RankCalculator/RankCalculator.csproj"
 
 COPY . .
-#WORKDIR "/src/RankCalculator" # Эту строку можно убрать, так как мы уже в /src
+WORKDIR "/src/RankCalculator"
 RUN dotnet build "RankCalculator.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

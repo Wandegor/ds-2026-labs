@@ -11,23 +11,20 @@ class Program
 {
     private const string RankExchange = "events.rank.calculated";
     private const string QueueName = "valuator.processing.rank";
-    
-    private static readonly Dictionary<string, IConnectionMultiplexer> _redisConnections = new();
 
     public static async Task Main(string[] args)
     {
         Console.WriteLine("Consumer started");
      
-        Library.InitDataBases();
+        await Library.InitDataBases();
 
         // Получает Env Var из Docker
         string rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
         
         // string mainAddr = Environment.GetEnvironmentVariable("DB_MAIN") ?? "localhost:6379";
-        
         // _redisConnections["MAIN"] = await ConnectionMultiplexer.ConnectAsync(mainAddr);
-        
         // IDatabase mainDb = _redisConnections["MAIN"].GetDatabase();
+        
         IDatabase mainDb = Library.GetDatabase("MAIN");
         
         ConnectionFactory factory = new()
@@ -104,7 +101,7 @@ class Program
         
         Console.WriteLine($"LOOKUP: {id}, {region}");
         
-        IDatabase shardDb = _redisConnections[region].GetDatabase();
+        IDatabase shardDb = Library.GetDatabase(region);
         
         // pa3
         string? text = await shardDb.StringGetAsync($"TEXT-{id}");
